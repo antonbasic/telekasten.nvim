@@ -1137,7 +1137,7 @@ function picker_actions.yank_link(opts)
             opts,
         })
         local title = "[[" .. pinfo.title .. "]]"
-        vim.fn.setreg('"', title)
+        vim.fn.setreg('*', title)
         print("yanked " .. title)
     end
 end
@@ -1440,12 +1440,12 @@ local function PreviewImg(opts)
 
         -- check if fname exists anywhere
         local imageDir = M.Cfg.image_subdir or M.Cfg.home
-        local fexists = fileutils.file_exists(imageDir .. "/" .. fname)
+        local fexists = fileutils.file_exists(M.Cfg.home .. "/" .. fname)
 
         if fexists == true then
             find_files_sorted({
                 prompt_title = "Preview image/media",
-                cwd = imageDir,
+                cwd = M.Cfg.home,
                 default_text = fname,
                 find_command = M.Cfg.find_command,
                 filter_extensions = M.Cfg.media_extensions,
@@ -1566,7 +1566,7 @@ local function YankLink()
     local title = "[["
         .. Pinfo:new({ filepath = vim.fn.expand("%:p"), M.Cfg }).title
         .. "]]"
-    vim.fn.setreg('"', title)
+    vim.fn.setreg('*', title)
     print("yanked " .. title)
 end
 
@@ -2888,6 +2888,32 @@ local function FindAllTags(opts)
     end)
 end
 
+local function GotoActiveTicket(opts)
+    opts = opts or {}
+
+    local task_uuid = vim.fn.system("task +ACTIVE uuids | head -n 1"):sub(1, -2)
+
+    local fname = M.Cfg.home .. "/tasknotes/" .. task_uuid .. M.Cfg.extension
+    local fexists = fileutils.file_exists(fname)
+
+    if fexists ~= true then
+        create_note_from_template(
+            task_uuid,
+            nil,
+            fname,
+            M.Cfg.home .. '/templates/task.md',
+            opts.dates,
+            function()
+                opts.erase = true
+                opts.erase_file = fname
+                vim.cmd("e " .. fname)
+            end
+        )
+        return
+    else
+      vim.cmd("e " .. fname)
+    end
+end
 -- Setup(cfg)
 --
 -- Overrides config with elements from cfg. See top of file for defaults.
@@ -3031,6 +3057,7 @@ M.insert_link = InsertLink
 M.follow_link = FollowLink
 M.setup = _setup
 M.goto_today = GotoToday
+M.goto_active_ticket = GotoActiveTicket
 M.new_note = CreateNote
 M.goto_thisweek = GotoThisWeek
 M.find_weekly_notes = FindWeeklyNotes
